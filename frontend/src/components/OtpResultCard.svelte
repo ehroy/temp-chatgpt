@@ -1,10 +1,9 @@
-<script lang="ts">
-	import type { OtpLookupResponse } from '$lib/types/otp';
-	import { formatTime } from '$lib/utils/formatTime';
+<script>
+	import { formatTime } from '$lib/utils/formatTime.js';
 
-	export let result: OtpLookupResponse | null;
+	export let result = null;
 
-	const statusLabel: Record<string, string> = {
+	const statusLabel = {
 		found: 'Found',
 		not_found: 'Not found',
 		expired: 'Expired',
@@ -12,7 +11,7 @@
 		error: 'Error'
 	};
 
-	const statusTone: Record<string, string> = {
+	const statusTone = {
 		found: 'success',
 		not_found: 'neutral',
 		expired: 'warning',

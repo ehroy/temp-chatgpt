@@ -1,9 +1,7 @@
-import type { OtpLookupResponse } from '$lib/types/otp';
-
 const baseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:9001';
 const token = import.meta.env.VITE_API_TOKEN ?? 'dev-token';
 
-export async function lookupOtp(email: string): Promise<OtpLookupResponse> {
+export async function lookupOtp(email) {
 	const response = await fetch(`${baseUrl}/api/otp/lookup`, {
 		method: 'POST',
 		headers: {
@@ -13,7 +11,7 @@ export async function lookupOtp(email: string): Promise<OtpLookupResponse> {
 		body: JSON.stringify({ email })
 	});
 
-	const payload = (await response.json().catch(() => ({}))) as OtpLookupResponse;
+	const payload = await response.json().catch(() => ({}));
 	if (!response.ok) {
 		return {
 			status: payload.status ?? 'error',

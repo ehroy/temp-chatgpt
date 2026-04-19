@@ -1,10 +1,10 @@
-<script lang="ts">
+<script>
 	import { createEventDispatcher } from 'svelte';
 
 	export let value = '';
 	export let loading = false;
 
-	const dispatch = createEventDispatcher<{ submit: void }>();
+	const dispatch = createEventDispatcher();
 
 	function submit() {
 		dispatch('submit');

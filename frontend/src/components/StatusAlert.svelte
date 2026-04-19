@@ -1,8 +1,8 @@
-<script lang="ts">
-	export let status: string;
-	export let message: string;
+<script>
+	export let status = '';
+	export let message = '';
 
-	const tones: Record<string, string> = {
+	const tones = {
 		found: 'success',
 		not_found: 'neutral',
 		expired: 'warning',

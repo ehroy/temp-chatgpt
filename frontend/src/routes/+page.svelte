@@ -1,13 +1,12 @@
-<script lang="ts">
+<script>
 	import OtpSearchForm from '../components/OtpSearchForm.svelte';
 	import OtpResultCard from '../components/OtpResultCard.svelte';
 	import StatusAlert from '../components/StatusAlert.svelte';
-	import { lookupOtp } from '$lib/api/otp';
-	import type { OtpLookupResponse } from '$lib/types/otp';
+	import { lookupOtp } from '$lib/api/otp.js';
 
 	let email = '';
 	let loading = false;
-	let result: OtpLookupResponse | null = null;
+	let result = null;
 
 	async function handleLookup() {
 		loading = true;
