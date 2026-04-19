@@ -1,0 +1,18 @@
+[Unit]
+Description=Email ChatGPT Backend
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/email-chatgpt/backend
+ExecStart=/var/www/email-chatgpt/backend/emailchatgpt
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+EnvironmentFile=/var/www/email-chatgpt/backend/.env
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

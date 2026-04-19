@@ -1,0 +1,32 @@
+# Dependencies
+**/node_modules/
+
+# Svelte/Vite build output
+frontend/.svelte-kit/
+frontend/build/
+frontend/dist/
+frontend/.vite/
+
+# Go build output
+backend/emailchatgpt
+backend/bin/
+bin/
+
+# Environment files
+.env
+backend/.env
+frontend/.env
+backend/.env.*
+frontend/.env.*
+!backend/.env.example
+!frontend/.env.example
+
+# Logs and runtime files
+*.log
+logs/
+*.pid
+
+# OS/editor files
+.DS_Store
+.idea/
+.vscode/
