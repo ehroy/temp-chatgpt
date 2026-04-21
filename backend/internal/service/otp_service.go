@@ -21,9 +21,27 @@ var (
 	ErrNotAllowed   = errors.New("folder email tidak diizinkan")
 )
 
-const chatGPTSubject = "Your temporary ChatGPT login code"
+var chatGPTSubjectHints = []string{
+	"your temporary chatgpt login code",
+	"chatgpt login code",
+	"temporary chatgpt login code",
+	"kode masuk chatgpt",
+	"kode login chatgpt",
+}
 
-var otpPattern = regexp.MustCompile(`(?is)Enter this temporary verification code to continue:\s*([0-9]{4,8})`)
+var chatGPTBodyHints = []string{
+	"enter this temporary verification code to continue",
+	"temporary verification code",
+	"kode verifikasi sementara",
+	"kode verifikasi ini",
+	"gunakan kode verifikasi ini",
+}
+
+var otpPatterns = []*regexp.Regexp{
+	regexp.MustCompile(`(?is)Enter this temporary verification code to continue:\s*([0-9]{4,8})`),
+	regexp.MustCompile(`(?is)Kode verifikasi(?: Anda)?(?: sementara)?[:\s]+([0-9]{4,8})`),
+	regexp.MustCompile(`(?is)Gunakan kode(?: verifikasi)?(?: ini)?[:\s]+([0-9]{4,8})`),
+}
 
 type OTPService struct {
 	repo           repository.Repository
@@ -58,7 +76,7 @@ func (s *OTPService) LookupOTP(ctx context.Context, email string) (model.OTPResu
 		if strings.TrimSpace(message.Recipient) != "" && !strings.Contains(strings.ToLower(message.Recipient), strings.ToLower(strings.TrimSpace(email))) {
 			continue
 		}
-		if strings.TrimSpace(message.Subject) != chatGPTSubject {
+		if !isChatGPTMessage(message.Subject, message.Body, message.Text) {
 			continue
 		}
 		if !s.folderAllowed(message.Folder) {
@@ -111,10 +129,27 @@ func extractChatGPTOTP(message model.EmailMessage) string {
 	text = strings.ReplaceAll(text, "\r\n", "\n")
 	text = strings.ReplaceAll(text, "\r", "\n")
 
-	if match := otpPattern.FindStringSubmatch(text); len(match) >= 2 {
-		return match[1]
+	for _, pattern := range otpPatterns {
+		if match := pattern.FindStringSubmatch(text); len(match) >= 2 {
+			return match[1]
+		}
 	}
 	return ""
+}
+
+func isChatGPTMessage(subject, body, text string) bool {
+	joined := strings.ToLower(strings.TrimSpace(subject) + " " + strings.TrimSpace(body) + " " + strings.TrimSpace(text))
+	for _, hint := range chatGPTSubjectHints {
+		if strings.Contains(joined, hint) {
+			return true
+		}
+	}
+	for _, hint := range chatGPTBodyHints {
+		if strings.Contains(joined, hint) {
+			return true
+		}
+	}
+	return false
 }
 
 func stripHTML(value string) string {
