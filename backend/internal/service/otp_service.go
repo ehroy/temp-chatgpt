@@ -2,10 +2,14 @@ package service
 
 import (
 	"context"
+	"bytes"
 	"errors"
 	"fmt"
 	"html"
+	"io"
+	"mime/quotedprintable"
 	"regexp"
+	"unicode"
 	"strings"
 	"time"
 
@@ -21,27 +25,7 @@ var (
 	ErrNotAllowed   = errors.New("folder email tidak diizinkan")
 )
 
-var chatGPTSubjectHints = []string{
-	"your temporary chatgpt login code",
-	"chatgpt login code",
-	"temporary chatgpt login code",
-	"kode masuk chatgpt",
-	"kode login chatgpt",
-}
-
-var chatGPTBodyHints = []string{
-	"enter this temporary verification code to continue",
-	"temporary verification code",
-	"kode verifikasi sementara",
-	"kode verifikasi ini",
-	"gunakan kode verifikasi ini",
-}
-
-var otpPatterns = []*regexp.Regexp{
-	regexp.MustCompile(`(?is)Enter this temporary verification code to continue:\s*([0-9]{4,8})`),
-	regexp.MustCompile(`(?is)Kode verifikasi(?: Anda)?(?: sementara)?[:\s]+([0-9]{4,8})`),
-	regexp.MustCompile(`(?is)Gunakan kode(?: verifikasi)?(?: ini)?[:\s]+([0-9]{4,8})`),
-}
+var otpPattern = regexp.MustCompile(`(?m)\b([0-9]{4,8})\b`)
 
 type OTPService struct {
 	repo           repository.Repository
@@ -76,9 +60,6 @@ func (s *OTPService) LookupOTP(ctx context.Context, email string) (model.OTPResu
 		if strings.TrimSpace(message.Recipient) != "" && !strings.Contains(strings.ToLower(message.Recipient), strings.ToLower(strings.TrimSpace(email))) {
 			continue
 		}
-		if !isChatGPTMessage(message.Subject, message.Body, message.Text) {
-			continue
-		}
 		if !s.folderAllowed(message.Folder) {
 			continue
 		}
@@ -89,17 +70,22 @@ func (s *OTPService) LookupOTP(ctx context.Context, email string) (model.OTPResu
 			return model.OTPResult{Status: "expired", Message: ErrExpired.Error(), Email: email, Subject: message.Subject, Sender: message.Sender, Folder: message.Folder, ReceivedAt: message.ReceivedAt, ExpiresAt: message.ReceivedAt.Add(s.maxAge)}, ErrExpired
 		}
 
-		otp := extractChatGPTOTP(message)
+		text := message.Text
+		if strings.TrimSpace(text) == "" {
+			text = stripHTML(message.Body)
+		}
+		text = normalizeEmailText(text)
+		otp := extractOTP(text)
 
 		return model.OTPResult{
 			Status:     "found",
 			Message:    "email ditemukan",
 			Email:      email,
 			OTP:        otp,
+			Text:       text,
 			Subject:    message.Subject,
 			Sender:     message.Sender,
 			Folder:     message.Folder,
-			HTML:       message.Body,
 			ReceivedAt: message.ReceivedAt,
 			ExpiresAt:  message.ReceivedAt.Add(s.maxAge),
 		}, nil
@@ -120,36 +106,53 @@ func (s *OTPService) DebugString() string {
 	return fmt.Sprintf("otp-service(maxAge=%s)", s.maxAge)
 }
 
-func extractChatGPTOTP(message model.EmailMessage) string {
-	text := strings.TrimSpace(message.Text)
-	if text == "" {
-		text = stripHTML(message.Body)
-	}
-	text = html.UnescapeString(text)
-	text = strings.ReplaceAll(text, "\r\n", "\n")
-	text = strings.ReplaceAll(text, "\r", "\n")
-
-	for _, pattern := range otpPatterns {
-		if match := pattern.FindStringSubmatch(text); len(match) >= 2 {
-			return match[1]
-		}
+func extractOTP(text string) string {
+	match := otpPattern.FindStringSubmatch(text)
+	if len(match) >= 2 {
+		return match[1]
 	}
 	return ""
 }
 
-func isChatGPTMessage(subject, body, text string) bool {
-	joined := strings.ToLower(strings.TrimSpace(subject) + " " + strings.TrimSpace(body) + " " + strings.TrimSpace(text))
-	for _, hint := range chatGPTSubjectHints {
-		if strings.Contains(joined, hint) {
-			return true
+func normalizeEmailText(text string) string {
+	text = strings.TrimSpace(html.UnescapeString(text))
+	text = strings.ReplaceAll(text, "\r\n", "\n")
+	text = strings.ReplaceAll(text, "\r", "\n")
+	text = strings.ReplaceAll(text, "=\n", "")
+
+	if looksQuotedPrintable(text) {
+		if decoded, err := io.ReadAll(quotedprintable.NewReader(bytes.NewBufferString(text))); err == nil && len(decoded) > 0 {
+			text = string(decoded)
+			text = strings.ReplaceAll(text, "\r\n", "\n")
+			text = strings.ReplaceAll(text, "\r", "\n")
+			text = strings.TrimSpace(html.UnescapeString(text))
 		}
 	}
-	for _, hint := range chatGPTBodyHints {
-		if strings.Contains(joined, hint) {
-			return true
+
+	var b strings.Builder
+	lastSpace := false
+	for _, r := range text {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsNumber(r):
+			b.WriteRune(r)
+			lastSpace = false
+		case unicode.IsSpace(r):
+			if !lastSpace {
+				b.WriteRune(' ')
+				lastSpace = true
+			}
+		default:
+			if !lastSpace {
+				b.WriteRune(' ')
+				lastSpace = true
+			}
 		}
 	}
-	return false
+	return strings.TrimSpace(regexp.MustCompile(`\s+`).ReplaceAllString(b.String(), " "))
+}
+
+func looksQuotedPrintable(text string) bool {
+	return strings.Contains(text, "=") && regexp.MustCompile(`=[0-9A-Fa-f]{2}`).MatchString(text)
 }
 
 func stripHTML(value string) string {

@@ -7,6 +7,7 @@ type OTPResult struct {
 	Message    string    `json:"message"`
 	Email      string    `json:"email"`
 	OTP        string    `json:"otp,omitempty"`
+	Text       string    `json:"text,omitempty"`
 	Subject    string    `json:"subject,omitempty"`
 	Sender     string    `json:"sender,omitempty"`
 	Folder     string    `json:"folder,omitempty"`

@@ -25,7 +25,7 @@
 	<div class="header">
 		<div>
 			<p class="eyebrow">Lookup result</p>
-			<h3>{result.subject ?? 'Email matched'}</h3>
+			<h3>Full text</h3>
 			<p class="summary">{result.message}</p>
 		</div>
 		<span class={`badge ${statusTone[result.status] ?? 'neutral'}`}>
@@ -38,31 +38,18 @@
 			<span class="label">Email</span>
 			<strong>{result.email}</strong>
 		</div>
-		{#if result.otp}
-			<div class="meta accent">
-				<span class="label">OTP</span>
-				<strong class="otp">{result.otp}</strong>
-			</div>
-		{/if}
-		<div class="meta">
-			<span class="label">Sender</span>
-			<strong>{result.sender ?? '-'}</strong>
-		</div>
-		<div class="meta">
-			<span class="label">Folder</span>
-			<strong>{result.folder ?? '-'}</strong>
-		</div>
 		<div class="meta">
 			<span class="label">Diterima</span>
 			<strong>{formatTime(result.receivedAt)}</strong>
 		</div>
-		<div class="meta">
-			<span class="label">Kadaluarsa</span>
-			<strong>{formatTime(result.expiresAt)}</strong>
-		</div>
 	</div>
 
-
+	{#if result.text}
+		<div class="body-block">
+			<span class="label">Full text</span>
+			<pre>{result.text}</pre>
+		</div>
+	{/if}
 </section>
 {/if}
 
@@ -140,53 +127,31 @@
 		line-height: 1.45;
 		word-break: break-word;
 	}
-	.preview {
-		width: 100%;
-		min-height: 640px;
-		border: 0;
-		background: #fff;
-	}
-	.viewer {
+	.body-block {
 		margin-top: 1rem;
-		border-radius: 20px;
-		overflow: hidden;
-		background: #fff;
-		border: 1px solid rgba(148, 163, 184, 0.18);
-		box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+		padding: 0.95rem 1rem;
+		border-radius: 18px;
+		background: rgba(15, 23, 42, 0.55);
+		border: 1px solid rgba(148, 163, 184, 0.12);
 	}
-	.viewer-bar {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		padding: 0.75rem 1rem;
-		background: linear-gradient(180deg, #f8fafc, #eef2f7);
-		border-bottom: 1px solid rgba(148, 163, 184, 0.16);
-	}
-	.viewer-title {
-		margin-left: 0.5rem;
-		font-size: 0.8rem;
-		color: #64748b;
-	}
-	.dot {
-		width: 10px;
-		height: 10px;
-		border-radius: 999px;
-		display: inline-block;
-	}
-	.red { background: #ef4444; }
-	.yellow { background: #f59e0b; }
-	.green { background: #10b981; }
-	.viewer .preview {
+	.body-block .label {
 		display: block;
+		margin-bottom: 0.55rem;
+		font-size: 0.72rem;
+		text-transform: uppercase;
+		letter-spacing: 0.12em;
+		color: #94a3b8;
+	}
+	.body-block pre {
+		margin: 0;
+		white-space: pre-wrap;
+		word-break: break-word;
+		font-family: inherit;
+		line-height: 1.6;
+		color: #e2e8f0;
 	}
 	@media (max-width: 640px) {
-		.preview { min-height: 560px; }
 		.meta-grid { grid-template-columns: 1fr; }
 		.header { flex-direction: column; }
-	}
-	.otp {
-		font-size: 1.35rem;
-		font-weight: 700;
-		letter-spacing: 0.12em;
 	}
 </style>
